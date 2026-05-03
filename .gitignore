@@ -27,6 +27,7 @@ yarn-error.log*
 
 # local env files
 .env*.local
+# keep .env.production in repo (public keys only)
 
 # vercel
 .vercel
