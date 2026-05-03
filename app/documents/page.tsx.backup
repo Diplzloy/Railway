@@ -1,0 +1,211 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { supabase, type Document } from "@/lib/supabase";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { Search, Download, Lock, FileText, Filter } from "lucide-react";
+
+const CATEGORIES = ["Все", "Своды правил (СП)", "ГОСТы", "Федеральные законы", "Приказы МЧС", "НПБ/ППБ", "Письма МЧС", "Постановления"];
+
+const CAT_COLORS: Record<string, string> = {
+  "Своды правил (СП)": "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  "ГОСТы": "bg-purple-50 text-purple-700 dark:bg-purple-950 dark:text-purple-300",
+  "Федеральные законы": "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",
+  "Приказы МЧС": "bg-orange-50 text-orange-700 dark:bg-orange-950 dark:text-orange-300",
+  "НПБ/ППБ": "bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300",
+  "Письма МЧС": "bg-teal-50 text-teal-700 dark:bg-teal-950 dark:text-teal-300",
+  "Постановления": "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+};
+
+export default function DocumentsPage() {
+  const [docs, setDocs] = useState<Document[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("Все");
+  const [user, setUser] = useState<any>(null);
+  const [page, setPage] = useState(1);
+  const PER_PAGE = 30;
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+    const { data: l } = supabase.auth.onAuthStateChange((_, s) => setUser(s?.user ?? null));
+    return () => l.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => { setPage(1); }, [search, category]);
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      let q = supabase.from("documents").select("*", { count: "exact" }).eq("is_active", true);
+      if (search) q = q.ilike("title", `%${search}%`);
+      if (category !== "Все") q = q.eq("category", category);
+      q = q.order("created_at", { ascending: false }).range((page - 1) * PER_PAGE, page * PER_PAGE - 1);
+      const { data, count } = await q;
+      setDocs(data || []);
+      setTotal(count || 0);
+      setLoading(false);
+    };
+    load();
+  }, [search, category, page]);
+
+  const handleDownload = async (doc: Document) => {
+    if (!user && !doc.is_free) { window.location.href = "/auth/register"; return; }
+    if (!doc.file_url) { alert("PDF файл ещё не загружен"); return; }
+    window.open(doc.file_url, "_blank");
+  };
+
+  const totalPages = Math.ceil(total / PER_PAGE);
+
+  return (
+    <>
+      <Header />
+      <main className="min-h-screen pt-16 bg-slate-50 dark:bg-slate-950">
+        {/* Header */}
+        <div className="bg-white dark:bg-slate-900 border-b border-border">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <span className="section-label">Нормативная база</span>
+            <h1 className="text-3xl sm:text-4xl font-black text-foreground mt-3 mb-3">
+              Документы по пожарной безопасности
+            </h1>
+            <p className="text-muted-foreground max-w-xl">
+              <span className="font-semibold text-foreground">{total || "..."}</span> нормативных актов: СП, ГОСТы, ФЗ, приказы и письма МЧС.
+            </p>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="СП 5, ГОСТ 53325, приказ МЧС 645..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 text-sm rounded-lg border border-border bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <select value={category} onChange={(e) => setCategory(e.target.value)}
+                className="px-3 py-2.5 text-sm rounded-lg border border-border bg-white dark:bg-slate-900 focus:outline-none focus:ring-2 focus:ring-red-500/20">
+                {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {/* Auth banner */}
+          {!user && (
+            <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Lock className="w-5 h-5 text-amber-600" />
+                <div>
+                  <div className="font-semibold text-amber-900 dark:text-amber-100 text-sm">Зарегистрируйтесь для скачивания</div>
+                  <div className="text-amber-700 dark:text-amber-300 text-xs">Бесплатный доступ ко всем документам</div>
+                </div>
+              </div>
+              <div className="flex gap-2 flex-shrink-0">
+                <a href="/auth/register" className="bg-amber-600 hover:bg-amber-700 text-white px-4 py-2 rounded-lg text-xs font-semibold transition-colors">
+                  Регистрация
+                </a>
+                <a href="/auth/login" className="border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 px-4 py-2 rounded-lg text-xs font-semibold hover:bg-amber-100 dark:hover:bg-amber-900 transition-colors">
+                  Войти
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Count */}
+          <div className="text-sm text-muted-foreground mb-4">
+            {loading ? "Загрузка..." : (
+              <>Найдено: <span className="font-semibold text-foreground">{total}</span>
+              {totalPages > 1 && <span className="ml-2">· стр. {page} из {totalPages}</span>}</>
+            )}
+          </div>
+
+          {/* Documents list */}
+          <div className="space-y-2">
+            {loading ? (
+              Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="bg-white dark:bg-slate-900 rounded-xl border border-border p-4 animate-pulse">
+                  <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-2" />
+                  <div className="h-3 bg-slate-100 dark:bg-slate-800 rounded w-1/4" />
+                </div>
+              ))
+            ) : docs.length === 0 ? (
+              <div className="text-center py-20 text-muted-foreground">
+                <FileText className="w-8 h-8 mx-auto mb-3 opacity-40" />
+                <div className="text-sm">По запросу «{search}» ничего не найдено</div>
+              </div>
+            ) : (
+              docs.map((doc) => (
+                <div key={doc.id} className="bg-white dark:bg-slate-900 rounded-xl border border-border px-4 sm:px-5 py-4 flex flex-col sm:flex-row sm:items-center gap-3 hover:shadow-md transition-shadow">
+                  <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-4 h-4 text-slate-500" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap gap-2 mb-1">
+                      {doc.category && (
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${CAT_COLORS[doc.category] || "bg-slate-100 text-slate-600"}`}>
+                          {doc.category}
+                        </span>
+                      )}
+                      {doc.is_free && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-400">
+                          Бесплатно
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-sm font-semibold text-foreground leading-snug">{doc.title}</h3>
+                    {doc.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{doc.description}</p>}
+                  </div>
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    {doc.file_size && <span className="text-xs text-muted-foreground hidden sm:block">{doc.file_size}</span>}
+                    <button
+                      onClick={() => handleDownload(doc)}
+                      className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                        user || doc.is_free
+                          ? doc.file_url
+                            ? "bg-red-600 hover:bg-red-700 text-white"
+                            : "bg-slate-100 dark:bg-slate-800 text-muted-foreground cursor-default"
+                          : "bg-slate-100 dark:bg-slate-800 text-muted-foreground hover:bg-amber-50 hover:text-amber-600"
+                      }`}
+                    >
+                      {user || doc.is_free ? (
+                        <><Download className="w-3.5 h-3.5" /> {doc.file_url ? "Скачать" : "Нет файла"}</>
+                      ) : (
+                        <><Lock className="w-3.5 h-3.5" /> Войти</>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 mt-8">
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                className="px-4 py-2 text-sm rounded-lg border border-border disabled:opacity-40 hover:bg-white dark:hover:bg-slate-900 transition-colors">
+                ← Назад
+              </button>
+              <span className="text-sm text-muted-foreground px-4">
+                {page} / {totalPages}
+              </span>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page >= totalPages}
+                className="px-4 py-2 text-sm rounded-lg border border-border disabled:opacity-40 hover:bg-white dark:hover:bg-slate-900 transition-colors">
+                Вперёд →
+              </button>
+            </div>
+          )}
+        </div>
+      </main>
+      <Footer />
+    </>
+  );
+}
