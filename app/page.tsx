@@ -6,6 +6,8 @@ import Stats from "@/components/home/Stats";
 import Advantages from "@/components/home/Advantages";
 import Cases from "@/components/home/Cases";
 import CTA from "@/components/home/CTA";
+import ServicesPreview from "@/components/home/ServicesPreview";
+import NewsPreview from "@/components/home/NewsPreview";
 
 export default function Home() {
   return (
@@ -13,9 +15,11 @@ export default function Home() {
       <Header />
       <Hero />
       <WhatWeDo />
+      <ServicesPreview />
       <Stats />
       <Advantages />
       <Cases />
+      <NewsPreview />
       <CTA />
       <Footer />
     </>

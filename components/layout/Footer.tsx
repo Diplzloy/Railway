@@ -97,17 +97,21 @@ export default function Footer() {
               <li className="flex items-start gap-3">
                 <Phone className="w-4 h-4 mt-0.5 flex-shrink-0" />
                 <div>
-                  <div>+7 (999) 123-45-67</div>
+                  <div><a href="tel:88007002487" className="hover:text-red-400 transition-colors">8 (800) 700-24-87</a></div>
                   <div className="text-xs text-slate-500">Пн-Пт 9:00-18:00</div>
                 </div>
               </li>
               <li className="flex items-start gap-3">
-                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <div>Москва, ул. Примерная, д. 1</div>
-              </li>
-              <li className="flex items-start gap-3">
                 <Mail className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <div>info@negorim.ru</div>
+                <div><a href="mailto:Info@di-mt.ru" className="hover:text-red-400 transition-colors">Info@di-mt.ru</a></div>
+              </li>
+              <li className="flex items-center gap-3 mt-2">
+                <a href="https://web.whatsapp.com/send?phone=79670553232" target="_blank" rel="noopener" className="text-xs hover:text-red-400">
+                  WhatsApp
+                </a>
+                <a href="https://telegram.me/dmtgroupru" target="_blank" rel="noopener" className="text-xs hover:text-red-400">
+                  Telegram
+                </a>
               </li>
             </ul>
           </div>

@@ -63,7 +63,7 @@ export default function Header() {
         <div className="flex items-center gap-4 text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <Phone className="w-3 h-3" />
-            +7 (999) 123-45-67
+            <a href="tel:88007002487" className="hover:text-red-400 transition-colors">8 (800) 700-24-87</a>
           </span>
           <span className="flex items-center gap-1.5">
             <MapPin className="w-3 h-3" />
